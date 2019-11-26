@@ -1,0 +1,68 @@
+网络编程/套接字编程
+
+网络通信
+网络字节序：
+	网络数据流规定：先发出去的对数据是低地址，后发出的数据是高地址；
+	网络数据流采用大端字节序，即低地址高字节；
+	为了能够使网络通信安全执行：如果发送主机是小端先将数据转化为大端，否则就忽略
+	为了是网络程序具有可移植性，使同样C代码在大端和小段及=机上面都能够跑，可以随
+	使用库函数将网络字节序和主机字节序进行转换。
+	#include<arpa/inet.h>
+	
+	uint32_t htonl(uint32_t hostlong);
+	uint16_t htons(uint16_t hostshort);
+	uint32_t ntohl(uint32_t netlong);
+	uint16_t ntohs(uint16_t netshort);
+	in_addr_t inet_addr(const char *cp)-将一个点分十进制转化为字符串IP转换为网络整数型IP地址转换返回
+	
+	h表示host，n表示network，l表示32位长整数，s表示16位短整数
+	htonl表示将32位的长整数从主机字节序转换为网络字节序，例子：将IP地址进行转化和发送
+	如果主机是小端字节序，这些函数将参数做相应的大小端进行转换
+	如果主机是大端字节序，则这些函数不做转换将参数原封不动的返回
+	
+SOCKEt套机字编程接口：
+	1、创建：int socket(int domain,int type,int protocol);
+	参数domain地址域：
+		AF_PACKET:Low level packet interface，直接从网卡上面获取数据不经过分用，直接交给应用程序
+		AF_INET:IPv4 Internet protocols，ipv4使用
+	type：
+		SOCK_STREAM流式传输：提供顺序、链接、可靠双向数据流传输服务：---TCP
+		SOCK_DGRAM：无连接、不可靠、有最大长度限制且是双向的的数据报服务：---UDP
+	protocol传输层所所使用的的协议：默认为0，使用哪个协议取决于type参数
+		IPPROTO_TCP/IPPROTO_UDP
+	返回值：文件描述符----套接字操作句柄
+	2、建立关联--绑定端口:int bind(int socket, const struct sockaddr *address,socklen_t address_len)
+	参数socket套接字操作句柄
+	address结构地址：为了使用一个统一的接口来完成不同地址的绑定
+		ipv4和ipv6用struct sockaddr_in表示，区别在于头部16位的地址类型
+	struct sockaddr_in
+	{
+		uint16_t sin_family；地址类型
+		uint16_t sin_port； 端口号
+		struct in_addr sin_addr；ip地址
+	}；
+	struct in_addr
+	{
+		in_addr_t a_addr；表示IPV4的IP地址，其实是一个32位整数
+	}；
+	虽然socket api的接口是sockaddr, 但是我们真正在基于IPv4编程时, 使用的数据结构是sockaddr_in; 
+	这个结构里主要有三部分信息: 地址类型, 端口号, IP地址
+	3、发送数据：ssize_t sendto(int socket,char* data,int len,int flag，struct sockaddr* daddr，soclen_t)
+	参数socket套接字操作句柄
+	data:要发送的数据
+	len：要发送数据长度
+	flag：选项参数 0--默认阻塞发送（数据能否放生到缓冲区中发不了就等），MSG_DONTWAIT-非阻塞(如果发不了不等报错返回)，
+	[这个阻塞和非阻塞，是相对于socket结构体中的发送缓冲区和接受缓冲区而言的]
+	addr：sockaddr_in 描述对端地址信息
+	addrlen：对端地址信息结构长度
+	返回值：>0--实际发送的数据长度，-1-表示失败
+	4、接收数据：ssize_t recvfrom(int socket,char* buf,int len,int flag,struct sockaddr* saddr,soclen_t* addrlen)
+	参数：socket--套接字操作句柄
+	buf：从socket接收缓冲区中取数据放到buf中，
+	len：要接收数据长度	
+	flag：0--默认阻塞接收（缓冲区中没有数据则一直等待）
+	saddr:源端地址信息，标识这条数据谁发的
+	*addrlen：输入输出参数-用于指定想要获取的地址信息长度-以及时返回实际数据的地址长度
+	返回值：>0--实际接收长度，-1--错误
+	5、关闭套接字 int close(int socket)
+	
